@@ -611,6 +611,28 @@ class UGATIT(object) :
             print(" [*] Failed to find a checkpoint")
             return False, 0
 
+    def init_model(self, sess):
+        """
+        初始化模型
+        """
+        tf.global_variables_initializer().run(session=sess)
+        self.saver = tf.train.Saver()
+        could_load, checkpoint_counter = self.load(self.checkpoint_dir)
+
+    def read_img(self, img_path):
+        """
+        读取图像
+        """
+        sample_image = np.asarray(load_test_data(img_path, size=self.img_size))
+        return sample_image
+
+    def predict_img(self, img_np, sess):
+        """
+        预测图像
+        """
+        fake_img = sess.run(self.test_fake_B, feed_dict={self.test_domain_A: img_np})
+        return fake_img
+
     def test(self):
         tf.global_variables_initializer().run()
         test_A_files = glob('./dataset/{}/*.*'.format(self.dataset_name + '/testA'))
