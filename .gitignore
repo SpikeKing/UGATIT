@@ -109,3 +109,7 @@ venv.bak/
 /dataset
 /data
 /.idea
+
+logs/
+results/
+samples/
