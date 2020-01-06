@@ -10,8 +10,6 @@ import cv2
 import numpy as np
 import tensorflow as tf
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
-
 from UGATIT import UGATIT
 from main import parse_args
 from my_utils.mst_utils import show_img_rgb
