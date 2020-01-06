@@ -10,6 +10,11 @@ import cv2
 import numpy as np
 import tensorflow as tf
 
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+config = tf.compat.v1.ConfigProto(allow_soft_placement=True, log_device_placement=True)
+config.gpu_options.allow_growth = True
+tf.compat.v1.Session(config=config)
+
 from UGATIT import UGATIT
 from main import parse_args
 from my_utils.mst_utils import show_img_rgb
