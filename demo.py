@@ -32,6 +32,7 @@ class ImgPredictor(object):
             exit()
         args.phase = 'test'
         args.dataset = 'selfie2anime'
+        # args.light = 'True'
         args.img_size = 256
 
         # open session
