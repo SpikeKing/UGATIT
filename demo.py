@@ -57,7 +57,7 @@ class ImgPredictor(object):
 
         img_fake = inverse_transform(img_fake)
         img_fake = img_fake.astype(np.uint8)
-        show_img_rgb(img_fake)
+        # show_img_rgb(img_fake)
         return img_fake
 
     def close_sess(self):
