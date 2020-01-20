@@ -487,6 +487,7 @@ class UGATIT(object):
             self.test_fake_A, _ = self.generate_b2a(self.test_domain_B)
 
     def train(self):
+        print('[Info] Batch size: {}'.format(self.batch_size))
         # initialize all variables
         tf.global_variables_initializer().run()
 
