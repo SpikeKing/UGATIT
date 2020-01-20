@@ -380,27 +380,20 @@ class UGATIT(object):
             """ Define Generator, Discriminator """
             with tf.device('/gpu:3'):
                 x_ab, cam_ab = self.generate_a2b(self.domain_A)  # real a
-            with tf.device('/gpu:4'):
                 x_ba, cam_ba = self.generate_b2a(self.domain_B)  # real b
-
-            with tf.device('/gpu:3'):
                 x_aba, _ = self.generate_b2a(x_ab, reuse=True)  # real b
-            with tf.device('/gpu:4'):
                 x_bab, _ = self.generate_a2b(x_ba, reuse=True)  # real a
-
-            with tf.device('/gpu:3'):
                 x_aa, cam_aa = self.generate_b2a(self.domain_A, reuse=True)  # fake b
-
-            with tf.device('/gpu:4'):
                 x_bb, cam_bb = self.generate_a2b(self.domain_B, reuse=True)  # fake a
 
-            real_A_logit, real_A_cam_logit, real_B_logit, real_B_cam_logit = \
-                self.discriminate_real(self.domain_A, self.domain_B)
-            fake_A_logit, fake_A_cam_logit, fake_B_logit, fake_B_cam_logit = \
-                self.discriminate_fake(x_ba, x_ab)
+            with tf.device('/gpu:4'):
+                real_A_logit, real_A_cam_logit, real_B_logit, real_B_cam_logit = \
+                    self.discriminate_real(self.domain_A, self.domain_B)
+                fake_A_logit, fake_A_cam_logit, fake_B_logit, fake_B_cam_logit = \
+                    self.discriminate_fake(x_ba, x_ab)
 
             """ Define Loss """
-            with tf.device('/gpu:1'):
+            with tf.device('/gpu:5'):
                 if self.gan_type.__contains__('wgan') or self.gan_type == 'dragan':
                     GP_A, GP_CAM_A = self.gradient_panalty(real=self.domain_A, fake=x_ba, scope="discriminator_A")
                     GP_B, GP_CAM_B = self.gradient_panalty(real=self.domain_B, fake=x_ab, scope="discriminator_B")
@@ -408,54 +401,56 @@ class UGATIT(object):
                     GP_A, GP_CAM_A = 0, 0
                     GP_B, GP_CAM_B = 0, 0
 
-            with tf.device('/gpu:2'):
+            with tf.device('/gpu:1'):
                 G_ad_loss_A = (
                         generator_loss(self.gan_type, fake_A_logit) + generator_loss(self.gan_type, fake_A_cam_logit))
+            with tf.device('/gpu:2'):
                 G_ad_loss_B = (
                         generator_loss(self.gan_type, fake_B_logit) + generator_loss(self.gan_type, fake_B_cam_logit))
 
             with tf.device('/gpu:1'):
                 D_ad_loss_A = (discriminator_loss(self.gan_type, real_A_logit, fake_A_logit) + discriminator_loss(
                     self.gan_type, real_A_cam_logit, fake_A_cam_logit) + GP_A + GP_CAM_A)
+            with tf.device('/gpu:2'):
                 D_ad_loss_B = (discriminator_loss(self.gan_type, real_B_logit, fake_B_logit) + discriminator_loss(
                     self.gan_type, real_B_cam_logit, fake_B_cam_logit) + GP_B + GP_CAM_B)
 
-            with tf.device('/gpu:2'):
+            with tf.device('/gpu:3'):
                 reconstruction_A = L1_loss(x_aba, self.domain_A)  # reconstruction
                 reconstruction_B = L1_loss(x_bab, self.domain_B)  # reconstruction
 
-            with tf.device('/gpu:1'):
+            with tf.device('/gpu:4'):
                 identity_A = L1_loss(x_aa, self.domain_A)
                 identity_B = L1_loss(x_bb, self.domain_B)
 
-            with tf.device('/gpu:2'):
+            with tf.device('/gpu:1'):
                 cam_A = cam_loss(source=cam_ba, non_source=cam_aa)
                 cam_B = cam_loss(source=cam_ab, non_source=cam_bb)
 
-            with tf.device('/gpu:1'):
+            with tf.device('/gpu:2'):
                 Generator_A_gan = self.adv_weight * G_ad_loss_A
                 Generator_A_cycle = self.cycle_weight * reconstruction_B
                 Generator_A_identity = self.identity_weight * identity_A
                 Generator_A_cam = self.cam_weight * cam_A
 
-            with tf.device('/gpu:2'):
+            with tf.device('/gpu:3'):
                 Generator_B_gan = self.adv_weight * G_ad_loss_B
                 Generator_B_cycle = self.cycle_weight * reconstruction_A
                 Generator_B_identity = self.identity_weight * identity_B
                 Generator_B_cam = self.cam_weight * cam_B
 
-            with tf.device('/gpu:1'):
+            with tf.device('/gpu:4'):
                 Generator_A_loss = Generator_A_gan + Generator_A_cycle + Generator_A_identity + Generator_A_cam
                 Generator_B_loss = Generator_B_gan + Generator_B_cycle + Generator_B_identity + Generator_B_cam
 
-            with tf.device('/gpu:2'):
+            with tf.device('/gpu:1'):
                 Discriminator_A_loss = self.adv_weight * D_ad_loss_A
                 Discriminator_B_loss = self.adv_weight * D_ad_loss_B
 
-            with tf.device('/gpu:3'):
+            with tf.device('/gpu:2'):
                 self.Generator_loss = Generator_A_loss + Generator_B_loss + regularization_loss('generator')
 
-            with tf.device('/gpu:4'):
+            with tf.device('/gpu:3'):
                 self.Discriminator_loss = Discriminator_A_loss + Discriminator_B_loss + regularization_loss(
                     'discriminator')
 
