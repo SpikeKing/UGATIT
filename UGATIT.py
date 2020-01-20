@@ -292,9 +292,9 @@ class UGATIT(object):
         return real_A_logit, real_A_cam_logit, real_B_logit, real_B_cam_logit
 
     def discriminate_fake(self, x_ba, x_ab):
-        with tf.device('/gpu:5'):
+        with tf.device('/gpu:3'):
             fake_A_logit, fake_A_cam_logit, _, _ = self.discriminator(x_ba, reuse=True, scope="discriminator_A")
-        with tf.device('/gpu:6'):
+        with tf.device('/gpu:4'):
             fake_B_logit, fake_B_cam_logit, _, _ = self.discriminator(x_ab, reuse=True, scope="discriminator_B")
 
         return fake_A_logit, fake_A_cam_logit, fake_B_logit, fake_B_cam_logit
@@ -464,7 +464,7 @@ class UGATIT(object):
             # G_vars = [var for var in t_vars if 'generator' in var.name]
             # D_vars = [var for var in t_vars if 'discriminator' in var.name]
 
-            with tf.device('/gpu:6'):
+            with tf.device('/gpu:5'):
                 self.G_optim = tf.train.AdamOptimizer(self.lr, beta1=0.5, beta2=0.999).minimize(self.Generator_loss,
                                                                                                 var_list=G_vars)
             with tf.device('/gpu:6'):
