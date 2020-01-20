@@ -452,10 +452,10 @@ class UGATIT(object):
                 Discriminator_A_loss = self.adv_weight * D_ad_loss_A
                 Discriminator_B_loss = self.adv_weight * D_ad_loss_B
 
-            with tf.device('/gpu:5'):
+            with tf.device('/gpu:3'):
                 self.Generator_loss = Generator_A_loss + Generator_B_loss + regularization_loss('generator')
 
-            with tf.device('/gpu:6'):
+            with tf.device('/gpu:4'):
                 self.Discriminator_loss = Discriminator_A_loss + Discriminator_B_loss + regularization_loss(
                     'discriminator')
 
@@ -533,8 +533,10 @@ class UGATIT(object):
             g_summary_list.extend(self.rho_var)
             d_summary_list = [self.D_A_loss, self.D_B_loss, self.all_D_loss]
 
-            self.G_loss = tf.summary.merge(g_summary_list)
-            self.D_loss = tf.summary.merge(d_summary_list)
+            with tf.device('/gpu:3'):
+                self.G_loss = tf.summary.merge(g_summary_list)
+            with tf.device('/gpu:4'):
+                self.D_loss = tf.summary.merge(d_summary_list)
 
         else:
             """ Test """
@@ -587,10 +589,9 @@ class UGATIT(object):
                 }
 
                 # Update D
-                with tf.device('/gpu:5'):
-                    _, d_loss, summary_str = self.sess.run([self.D_optim,
-                                                            self.Discriminator_loss, self.D_loss],
-                                                           feed_dict=train_feed_dict)
+                _, d_loss, summary_str = self.sess.run([self.D_optim,
+                                                        self.Discriminator_loss, self.D_loss],
+                                                       feed_dict=train_feed_dict)
                 self.writer.add_summary(summary_str, counter)
 
                 # Update G
