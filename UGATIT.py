@@ -346,16 +346,15 @@ class UGATIT(object):
             trainB = tf.data.Dataset.from_tensor_slices(self.trainB_dataset)
 
             # 使用GPU0
-            gpu_device_0 = '/gpu:2'
+            gpu_device = '/gpu:1'
             trainA = trainA.apply(shuffle_and_repeat(self.dataset_num)).apply(
                 map_and_batch(Image_Data_Class.image_processing, self.batch_size, num_parallel_batches=16,
-                              drop_remainder=True)).apply(prefetch_to_device(gpu_device_0, None))
+                              drop_remainder=True)).apply(prefetch_to_device(gpu_device, None))
 
             # 使用GPU1
-            gpu_device_1 = '/gpu:3'
             trainB = trainB.apply(shuffle_and_repeat(self.dataset_num)).apply(
                 map_and_batch(Image_Data_Class.image_processing, self.batch_size, num_parallel_batches=16,
-                              drop_remainder=True)).apply(prefetch_to_device(gpu_device_1, None))
+                              drop_remainder=True)).apply(prefetch_to_device(gpu_device, None))
 
             trainA_iterator = trainA.make_one_shot_iterator()
             trainB_iterator = trainB.make_one_shot_iterator()
@@ -499,6 +498,7 @@ class UGATIT(object):
 
         # restore check-point if it exits
         could_load, checkpoint_counter = self.load(self.checkpoint_dir)
+
         if could_load:
             start_epoch = (int)(checkpoint_counter / self.iteration)
             start_batch_id = checkpoint_counter - start_epoch * self.iteration

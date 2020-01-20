@@ -97,8 +97,10 @@ def main():
     with tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:
         gan = UGATIT(sess, args)
 
+        print('[Info] 构建模型开始!')
         # build graph
         gan.build_model()
+        print('[Info] 构建模型完成!')
 
         # show network architecture
         show_all_variables()
