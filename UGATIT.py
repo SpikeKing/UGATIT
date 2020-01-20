@@ -364,8 +364,10 @@ class UGATIT(object):
             trainA_iterator = trainA.make_one_shot_iterator()
             trainB_iterator = trainB.make_one_shot_iterator()
 
-            self.domain_A = trainA_iterator.get_next()
-            self.domain_B = trainB_iterator.get_next()
+            with tf.device('/gpu:3'):
+                self.domain_A = trainA_iterator.get_next()
+            with tf.device('/gpu:4'):
+                self.domain_B = trainB_iterator.get_next()
 
             """ Define Generator, Discriminator """
             with tf.device('/gpu:3'):
