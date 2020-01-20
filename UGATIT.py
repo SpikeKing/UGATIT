@@ -457,8 +457,19 @@ class UGATIT(object):
             print('[Info] devices: {}'.format(devices))
 
             t_vars = tf.trainable_variables()
-            G_vars = [var for var in t_vars if 'generator' in var.name]
-            D_vars = [var for var in t_vars if 'discriminator' in var.name]
+            G_vars = []
+            D_vars = []
+            for i, var in enumerate(t_vars):
+                idx = i % len(devices)
+                if 'generator' in var.name:
+                    with tf.device(devices[idx]):
+                        G_vars.append(var)
+                if 'discriminator' in var.name:
+                    with tf.device(devices[idx]):
+                        D_vars.append(var)
+
+            # G_vars = [var for var in t_vars if 'generator' in var.name]
+            # D_vars = [var for var in t_vars if 'discriminator' in var.name]
 
             self.G_optim = tf.train.AdamOptimizer(self.lr, beta1=0.5, beta2=0.999).minimize(self.Generator_loss,
                                                                                             var_list=G_vars)
