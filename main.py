@@ -94,9 +94,9 @@ def main():
         exit()
 
     gpu_options = tf.GPUOptions(allow_growth=True)
-    
+
     # open session
-    with tf.InteractiveSession(config=tf.ConfigProto(allow_soft_placement=True, gpu_options=gpu_options)) as sess:
+    with tf.Session(config=tf.ConfigProto(allow_soft_placement=True, gpu_options=gpu_options)) as sess:
         gan = UGATIT(sess, args)
 
         print('[Info] 构建模型开始!')
