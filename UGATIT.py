@@ -346,15 +346,16 @@ class UGATIT(object):
             trainB = tf.data.Dataset.from_tensor_slices(self.trainB_dataset)
 
             # 使用GPU0
-            gpu_device = '/gpu:1'
+            gpu_device_1 = '/gpu:1'
             trainA = trainA.apply(shuffle_and_repeat(self.dataset_num)).apply(
                 map_and_batch(Image_Data_Class.image_processing, self.batch_size, num_parallel_batches=16,
-                              drop_remainder=True)).apply(prefetch_to_device(gpu_device, None))
+                              drop_remainder=True)).apply(prefetch_to_device(gpu_device_1, None))
 
             # 使用GPU1
+            gpu_device_2 = '/gpu:2'
             trainB = trainB.apply(shuffle_and_repeat(self.dataset_num)).apply(
                 map_and_batch(Image_Data_Class.image_processing, self.batch_size, num_parallel_batches=16,
-                              drop_remainder=True)).apply(prefetch_to_device(gpu_device, None))
+                              drop_remainder=True)).apply(prefetch_to_device(gpu_device_2, None))
 
             trainA_iterator = trainA.make_one_shot_iterator()
             trainB_iterator = trainB.make_one_shot_iterator()
@@ -363,18 +364,28 @@ class UGATIT(object):
             self.domain_B = trainB_iterator.get_next()
 
             """ Define Generator, Discriminator """
-            x_ab, cam_ab = self.generate_a2b(self.domain_A)  # real a
-            x_ba, cam_ba = self.generate_b2a(self.domain_B)  # real b
+            with tf.device('/gpu:3'):
+                x_ab, cam_ab = self.generate_a2b(self.domain_A)  # real a
+            with tf.device('/gpu:4'):
+                x_ba, cam_ba = self.generate_b2a(self.domain_B)  # real b
 
-            x_aba, _ = self.generate_b2a(x_ab, reuse=True)  # real b
-            x_bab, _ = self.generate_a2b(x_ba, reuse=True)  # real a
+            with tf.device('/gpu:3'):
+                x_aba, _ = self.generate_b2a(x_ab, reuse=True)  # real b
+            with tf.device('/gpu:4'):
+                x_bab, _ = self.generate_a2b(x_ba, reuse=True)  # real a
 
-            x_aa, cam_aa = self.generate_b2a(self.domain_A, reuse=True)  # fake b
-            x_bb, cam_bb = self.generate_a2b(self.domain_B, reuse=True)  # fake a
+            with tf.device('/gpu:3'):
+                x_aa, cam_aa = self.generate_b2a(self.domain_A, reuse=True)  # fake b
 
-            real_A_logit, real_A_cam_logit, real_B_logit, real_B_cam_logit = self.discriminate_real(
-                self.domain_A, self.domain_B)
-            fake_A_logit, fake_A_cam_logit, fake_B_logit, fake_B_cam_logit = self.discriminate_fake(x_ba, x_ab)
+            with tf.device('/gpu:4'):
+                x_bb, cam_bb = self.generate_a2b(self.domain_B, reuse=True)  # fake a
+
+            with tf.device('/gpu:5'):
+                real_A_logit, real_A_cam_logit, real_B_logit, real_B_cam_logit = \
+                    self.discriminate_real(self.domain_A, self.domain_B)
+            with tf.device('/gpu:6'):
+                fake_A_logit, fake_A_cam_logit, fake_B_logit, fake_B_cam_logit = \
+                    self.discriminate_fake(x_ba, x_ab)
 
             """ Define Loss """
             if self.gan_type.__contains__('wgan') or self.gan_type == 'dragan':
