@@ -284,14 +284,18 @@ class UGATIT(object):
         return out, cam
 
     def discriminate_real(self, x_A, x_B):
-        real_A_logit, real_A_cam_logit, _, _ = self.discriminator(x_A, scope="discriminator_A")
-        real_B_logit, real_B_cam_logit, _, _ = self.discriminator(x_B, scope="discriminator_B")
+        with tf.device('/gpu:3'):
+            real_A_logit, real_A_cam_logit, _, _ = self.discriminator(x_A, scope="discriminator_A")
+        with tf.device('/gpu:4'):
+            real_B_logit, real_B_cam_logit, _, _ = self.discriminator(x_B, scope="discriminator_B")
 
         return real_A_logit, real_A_cam_logit, real_B_logit, real_B_cam_logit
 
     def discriminate_fake(self, x_ba, x_ab):
-        fake_A_logit, fake_A_cam_logit, _, _ = self.discriminator(x_ba, reuse=True, scope="discriminator_A")
-        fake_B_logit, fake_B_cam_logit, _, _ = self.discriminator(x_ab, reuse=True, scope="discriminator_B")
+        with tf.device('/gpu:5'):
+            fake_A_logit, fake_A_cam_logit, _, _ = self.discriminator(x_ba, reuse=True, scope="discriminator_A")
+        with tf.device('/gpu:6'):
+            fake_B_logit, fake_B_cam_logit, _, _ = self.discriminator(x_ab, reuse=True, scope="discriminator_B")
 
         return fake_A_logit, fake_A_cam_logit, fake_B_logit, fake_B_cam_logit
 
@@ -380,12 +384,10 @@ class UGATIT(object):
             with tf.device('/gpu:4'):
                 x_bb, cam_bb = self.generate_a2b(self.domain_B, reuse=True)  # fake a
 
-            with tf.device('/gpu:5'):
-                real_A_logit, real_A_cam_logit, real_B_logit, real_B_cam_logit = \
-                    self.discriminate_real(self.domain_A, self.domain_B)
-            with tf.device('/gpu:6'):
-                fake_A_logit, fake_A_cam_logit, fake_B_logit, fake_B_cam_logit = \
-                    self.discriminate_fake(x_ba, x_ab)
+            real_A_logit, real_A_cam_logit, real_B_logit, real_B_cam_logit = \
+                self.discriminate_real(self.domain_A, self.domain_B)
+            fake_A_logit, fake_A_cam_logit, fake_B_logit, fake_B_cam_logit = \
+                self.discriminate_fake(x_ba, x_ab)
 
             """ Define Loss """
             if self.gan_type.__contains__('wgan') or self.gan_type == 'dragan':
