@@ -452,15 +452,25 @@ class UGATIT(object):
                 Discriminator_A_loss = self.adv_weight * D_ad_loss_A
                 Discriminator_B_loss = self.adv_weight * D_ad_loss_B
 
-            self.Generator_loss = Generator_A_loss + Generator_B_loss + regularization_loss('generator')
-            self.Discriminator_loss = Discriminator_A_loss + Discriminator_B_loss + regularization_loss('discriminator')
+            with tf.device('/gpu:5'):
+                self.Generator_loss = Generator_A_loss + Generator_B_loss + regularization_loss('generator')
+
+            with tf.device('/gpu:6'):
+                self.Discriminator_loss = Discriminator_A_loss + Discriminator_B_loss + regularization_loss(
+                    'discriminator')
 
             """ Result Image """
-            self.fake_A = x_ba
-            self.fake_B = x_ab
+            with tf.device('/gpu:1'):
+                self.fake_A = x_ba
 
-            self.real_A = self.domain_A
-            self.real_B = self.domain_B
+            with tf.device('/gpu:2'):
+                self.fake_B = x_ab
+
+            with tf.device('/gpu:3'):
+                self.real_A = self.domain_A
+
+            with tf.device('/gpu:4'):
+                self.real_B = self.domain_B
 
             """ Training """
             devices = self.get_available_gpus()
@@ -481,10 +491,13 @@ class UGATIT(object):
             # G_vars = [var for var in t_vars if 'generator' in var.name]
             # D_vars = [var for var in t_vars if 'discriminator' in var.name]
 
-            self.G_optim = tf.train.AdamOptimizer(self.lr, beta1=0.5, beta2=0.999).minimize(self.Generator_loss,
-                                                                                            var_list=G_vars)
-            self.D_optim = tf.train.AdamOptimizer(self.lr, beta1=0.5, beta2=0.999).minimize(self.Discriminator_loss,
-                                                                                            var_list=D_vars)
+            with tf.device('/gpu:5'):
+                self.G_optim = tf.train.AdamOptimizer(self.lr, beta1=0.5, beta2=0.999).minimize(self.Generator_loss,
+                                                                                                var_list=G_vars)
+
+            with tf.device('/gpu:6'):
+                self.D_optim = tf.train.AdamOptimizer(self.lr, beta1=0.5, beta2=0.999).minimize(self.Discriminator_loss,
+                                                                                                var_list=D_vars)
 
             """" Summary """
             self.all_G_loss = tf.summary.scalar("Generator_loss", self.Generator_loss)
@@ -574,19 +587,21 @@ class UGATIT(object):
                 }
 
                 # Update D
-                _, d_loss, summary_str = self.sess.run([self.D_optim,
-                                                        self.Discriminator_loss, self.D_loss],
-                                                       feed_dict=train_feed_dict)
+                with tf.device('/gpu:5'):
+                    _, d_loss, summary_str = self.sess.run([self.D_optim,
+                                                            self.Discriminator_loss, self.D_loss],
+                                                           feed_dict=train_feed_dict)
                 self.writer.add_summary(summary_str, counter)
 
                 # Update G
                 g_loss = None
                 if (counter - 1) % self.n_critic == 0:
-                    batch_A_images, batch_B_images, fake_A, fake_B, _, g_loss, summary_str = self.sess.run(
-                        [self.real_A, self.real_B,
-                         self.fake_A, self.fake_B,
-                         self.G_optim,
-                         self.Generator_loss, self.G_loss], feed_dict=train_feed_dict)
+                    with tf.device('/gpu:6'):
+                        batch_A_images, batch_B_images, fake_A, fake_B, _, g_loss, summary_str = self.sess.run(
+                            [self.real_A, self.real_B,
+                             self.fake_A, self.fake_B,
+                             self.G_optim,
+                             self.Generator_loss, self.G_loss], feed_dict=train_feed_dict)
                     self.writer.add_summary(summary_str, counter)
                     past_g_loss = g_loss
 
