@@ -431,12 +431,13 @@ class UGATIT(object):
             Discriminator_A_loss = self.adv_weight * D_ad_loss_A
             Discriminator_B_loss = self.adv_weight * D_ad_loss_B
 
-            with tf.device('/gpu:1'):
-                self.Generator_loss = Generator_A_loss + Generator_B_loss + regularization_loss('generator')
+            with tf.device('/gpu:3'):
+                self.Generator_loss = Generator_A_loss + Generator_B_loss + \
+                                      regularization_loss('generator')
 
-            with tf.device('/gpu:2'):
-                self.Discriminator_loss = Discriminator_A_loss + Discriminator_B_loss + regularization_loss(
-                    'discriminator')
+            with tf.device('/gpu:4'):
+                self.Discriminator_loss = Discriminator_A_loss + Discriminator_B_loss + \
+                                          regularization_loss('discriminator')
 
             """ Result Image """
             self.fake_A = x_ba
@@ -463,10 +464,10 @@ class UGATIT(object):
             # G_vars = [var for var in t_vars if 'generator' in var.name]
             # D_vars = [var for var in t_vars if 'discriminator' in var.name]
 
-            with tf.device('/gpu:1'):
+            with tf.device('/gpu:3'):
                 self.G_optim = tf.train.AdamOptimizer(self.lr, beta1=0.5, beta2=0.999).minimize(self.Generator_loss,
                                                                                                 var_list=G_vars)
-            with tf.device('/gpu:2'):
+            with tf.device('/gpu:4'):
                 self.D_optim = tf.train.AdamOptimizer(self.lr, beta1=0.5, beta2=0.999).minimize(self.Discriminator_loss,
                                                                                                 var_list=D_vars)
 
