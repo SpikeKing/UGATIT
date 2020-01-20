@@ -348,13 +348,13 @@ class UGATIT(object):
             # 使用GPU0
             gpu_device_1 = '/gpu:1'
             trainA = trainA.apply(shuffle_and_repeat(self.dataset_num)).apply(
-                map_and_batch(Image_Data_Class.image_processing, self.batch_size, num_parallel_batches=16,
+                map_and_batch(Image_Data_Class.image_processing, self.batch_size, num_parallel_batches=1,
                               drop_remainder=True)).apply(prefetch_to_device(gpu_device_1, None))
 
             # 使用GPU1
             gpu_device_2 = '/gpu:2'
             trainB = trainB.apply(shuffle_and_repeat(self.dataset_num)).apply(
-                map_and_batch(Image_Data_Class.image_processing, self.batch_size, num_parallel_batches=16,
+                map_and_batch(Image_Data_Class.image_processing, self.batch_size, num_parallel_batches=1,
                               drop_remainder=True)).apply(prefetch_to_device(gpu_device_2, None))
 
             trainA_iterator = trainA.make_one_shot_iterator()
