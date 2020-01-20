@@ -339,6 +339,14 @@ class UGATIT(object):
 
         return sum(GP), sum(cam_GP)
 
+    def get_available_gpus(self):
+        """
+            Returns a list of the identifiers of all visible GPUs.
+        """
+        from tensorflow.python.client import device_lib
+        local_device_protos = device_lib.list_local_devices()
+        return [x.name for x in local_device_protos if x.device_type == 'GPU']
+
     def build_model(self):
         if self.phase == 'train':
             self.lr = tf.placeholder(tf.float32, name='learning_rate')
@@ -445,6 +453,9 @@ class UGATIT(object):
             self.real_B = self.domain_B
 
             """ Training """
+            devices = self.get_available_gpus()
+            print('[Info] devices: {}'.format(devices))
+
             t_vars = tf.trainable_variables()
             G_vars = [var for var in t_vars if 'generator' in var.name]
             D_vars = [var for var in t_vars if 'discriminator' in var.name]
