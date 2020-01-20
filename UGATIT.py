@@ -453,7 +453,7 @@ class UGATIT(object):
             G_vars = []
             D_vars = []
             for i, var in enumerate(t_vars):
-                idx = i % len(devices)
+                idx = i % (len(devices) - 2)
                 if 'generator' in var.name:
                     with tf.device(devices[idx]):
                         G_vars.append(var)
