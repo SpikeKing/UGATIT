@@ -464,7 +464,7 @@ class UGATIT(object):
             # G_vars = [var for var in t_vars if 'generator' in var.name]
             # D_vars = [var for var in t_vars if 'discriminator' in var.name]
 
-            with tf.device('/gpu:5'):
+            with tf.device('/gpu:6'):
                 self.G_optim = tf.train.AdamOptimizer(self.lr, beta1=0.5, beta2=0.999).minimize(self.Generator_loss,
                                                                                                 var_list=G_vars)
             with tf.device('/gpu:6'):
