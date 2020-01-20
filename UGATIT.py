@@ -372,10 +372,8 @@ class UGATIT(object):
             trainA_iterator = trainA.make_one_shot_iterator()
             trainB_iterator = trainB.make_one_shot_iterator()
 
-            with tf.device('/gpu:3'):
-                self.domain_A = trainA_iterator.get_next()
-            with tf.device('/gpu:4'):
-                self.domain_B = trainB_iterator.get_next()
+            self.domain_A = trainA_iterator.get_next()
+            self.domain_B = trainB_iterator.get_next()
 
             """ Define Generator, Discriminator """
             with tf.device('/gpu:3'):
@@ -495,7 +493,7 @@ class UGATIT(object):
                                                                                                 var_list=D_vars)
 
             """" Summary """
-            with tf.device('/gpu:1'):
+            with tf.device('/gpu:6'):
                 self.all_G_loss = tf.summary.scalar("Generator_loss", self.Generator_loss)
                 self.all_D_loss = tf.summary.scalar("Discriminator_loss", self.Discriminator_loss)
 
