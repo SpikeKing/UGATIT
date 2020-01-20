@@ -414,21 +414,21 @@ class UGATIT(object):
                 G_ad_loss_B = (
                         generator_loss(self.gan_type, fake_B_logit) + generator_loss(self.gan_type, fake_B_cam_logit))
 
-            with tf.device('/gpu:3'):
+            with tf.device('/gpu:1'):
                 D_ad_loss_A = (discriminator_loss(self.gan_type, real_A_logit, fake_A_logit) + discriminator_loss(
                     self.gan_type, real_A_cam_logit, fake_A_cam_logit) + GP_A + GP_CAM_A)
                 D_ad_loss_B = (discriminator_loss(self.gan_type, real_B_logit, fake_B_logit) + discriminator_loss(
                     self.gan_type, real_B_cam_logit, fake_B_cam_logit) + GP_B + GP_CAM_B)
 
-            with tf.device('/gpu:4'):
+            with tf.device('/gpu:2'):
                 reconstruction_A = L1_loss(x_aba, self.domain_A)  # reconstruction
                 reconstruction_B = L1_loss(x_bab, self.domain_B)  # reconstruction
 
-            with tf.device('/gpu:5'):
+            with tf.device('/gpu:1'):
                 identity_A = L1_loss(x_aa, self.domain_A)
                 identity_B = L1_loss(x_bb, self.domain_B)
 
-            with tf.device('/gpu:6'):
+            with tf.device('/gpu:2'):
                 cam_A = cam_loss(source=cam_ba, non_source=cam_aa)
                 cam_B = cam_loss(source=cam_ab, non_source=cam_bb)
 
@@ -444,11 +444,11 @@ class UGATIT(object):
                 Generator_B_identity = self.identity_weight * identity_B
                 Generator_B_cam = self.cam_weight * cam_B
 
-            with tf.device('/gpu:3'):
+            with tf.device('/gpu:1'):
                 Generator_A_loss = Generator_A_gan + Generator_A_cycle + Generator_A_identity + Generator_A_cam
                 Generator_B_loss = Generator_B_gan + Generator_B_cycle + Generator_B_identity + Generator_B_cam
 
-            with tf.device('/gpu:4'):
+            with tf.device('/gpu:2'):
                 Discriminator_A_loss = self.adv_weight * D_ad_loss_A
                 Discriminator_B_loss = self.adv_weight * D_ad_loss_B
 
@@ -500,23 +500,27 @@ class UGATIT(object):
                                                                                                 var_list=D_vars)
 
             """" Summary """
-            self.all_G_loss = tf.summary.scalar("Generator_loss", self.Generator_loss)
-            self.all_D_loss = tf.summary.scalar("Discriminator_loss", self.Discriminator_loss)
+            with tf.device('/gpu:1'):
+                self.all_G_loss = tf.summary.scalar("Generator_loss", self.Generator_loss)
+                self.all_D_loss = tf.summary.scalar("Discriminator_loss", self.Discriminator_loss)
 
-            self.G_A_loss = tf.summary.scalar("G_A_loss", Generator_A_loss)
-            self.G_A_gan = tf.summary.scalar("G_A_gan", Generator_A_gan)
-            self.G_A_cycle = tf.summary.scalar("G_A_cycle", Generator_A_cycle)
-            self.G_A_identity = tf.summary.scalar("G_A_identity", Generator_A_identity)
-            self.G_A_cam = tf.summary.scalar("G_A_cam", Generator_A_cam)
+            with tf.device('/gpu:2'):
+                self.G_A_loss = tf.summary.scalar("G_A_loss", Generator_A_loss)
+                self.G_A_gan = tf.summary.scalar("G_A_gan", Generator_A_gan)
+                self.G_A_cycle = tf.summary.scalar("G_A_cycle", Generator_A_cycle)
+                self.G_A_identity = tf.summary.scalar("G_A_identity", Generator_A_identity)
+                self.G_A_cam = tf.summary.scalar("G_A_cam", Generator_A_cam)
 
-            self.G_B_loss = tf.summary.scalar("G_B_loss", Generator_B_loss)
-            self.G_B_gan = tf.summary.scalar("G_B_gan", Generator_B_gan)
-            self.G_B_cycle = tf.summary.scalar("G_B_cycle", Generator_B_cycle)
-            self.G_B_identity = tf.summary.scalar("G_B_identity", Generator_B_identity)
-            self.G_B_cam = tf.summary.scalar("G_B_cam", Generator_B_cam)
+            with tf.device('/gpu:3'):
+                self.G_B_loss = tf.summary.scalar("G_B_loss", Generator_B_loss)
+                self.G_B_gan = tf.summary.scalar("G_B_gan", Generator_B_gan)
+                self.G_B_cycle = tf.summary.scalar("G_B_cycle", Generator_B_cycle)
+                self.G_B_identity = tf.summary.scalar("G_B_identity", Generator_B_identity)
+                self.G_B_cam = tf.summary.scalar("G_B_cam", Generator_B_cam)
 
-            self.D_A_loss = tf.summary.scalar("D_A_loss", Discriminator_A_loss)
-            self.D_B_loss = tf.summary.scalar("D_B_loss", Discriminator_B_loss)
+            with tf.device('/gpu:4'):
+                self.D_A_loss = tf.summary.scalar("D_A_loss", Discriminator_A_loss)
+                self.D_B_loss = tf.summary.scalar("D_B_loss", Discriminator_B_loss)
 
             self.rho_var = []
             for var in tf.trainable_variables():
