@@ -5,14 +5,13 @@ import time
 from tensorflow.contrib.data import prefetch_to_device, shuffle_and_repeat, map_and_batch
 import numpy as np
 
-
-class UGATIT(object):
+class UGATIT(object) :
     def __init__(self, sess, args):
         self.light = args.light
 
-        if self.light:
+        if self.light :
             self.model_name = 'UGATIT_light'
-        else:
+        else :
             self.model_name = 'UGATIT'
 
         self.sess = sess
@@ -55,6 +54,7 @@ class UGATIT(object):
 
         self.img_size = args.img_size
         self.img_ch = args.img_ch
+
 
         self.sample_dir = os.path.join(args.sample_dir, self.model_dir)
         check_folder(self.sample_dir)
@@ -102,15 +102,15 @@ class UGATIT(object):
 
     def generator(self, x_init, reuse=False, scope="generator"):
         channel = self.ch
-        with tf.variable_scope(scope, reuse=reuse):
+        with tf.variable_scope(scope, reuse=reuse) :
             x = conv(x_init, channel, kernel=7, stride=1, pad=3, pad_type='reflect', scope='conv')
             x = instance_norm(x, scope='ins_norm')
             x = relu(x)
 
             # Down-Sampling
-            for i in range(2):
-                x = conv(x, channel * 2, kernel=3, stride=2, pad=1, pad_type='reflect', scope='conv_' + str(i))
-                x = instance_norm(x, scope='ins_norm_' + str(i))
+            for i in range(2) :
+                x = conv(x, channel*2, kernel=3, stride=2, pad=1, pad_type='reflect', scope='conv_'+str(i))
+                x = instance_norm(x, scope='ins_norm_'+str(i))
                 x = relu(x)
 
                 channel = channel * 2
@@ -118,6 +118,7 @@ class UGATIT(object):
             # Down-Sampling Bottleneck
             for i in range(self.n_res):
                 x = resblock(x, channel, scope='resblock_' + str(i))
+
 
             # Class Activation Map
             cam_x = global_avg_pooling(x)
@@ -127,6 +128,7 @@ class UGATIT(object):
             cam_x = global_max_pooling(x)
             cam_gmp_logit, cam_x_weight = fully_connected_with_w(cam_x, reuse=True, scope='CAM_logit')
             x_gmp = tf.multiply(x, cam_x_weight)
+
 
             cam_logit = tf.concat([cam_gap_logit, cam_gmp_logit], axis=-1)
             x = tf.concat([x_gap, x_gmp], axis=-1)
@@ -141,17 +143,17 @@ class UGATIT(object):
 
             # Up-Sampling Bottleneck
             for i in range(self.n_res):
-                x = adaptive_ins_layer_resblock(x, channel, gamma, beta, smoothing=self.smoothing,
-                                                scope='adaptive_resblock' + str(i))
+                x = adaptive_ins_layer_resblock(x, channel, gamma, beta, smoothing=self.smoothing, scope='adaptive_resblock' + str(i))
 
             # Up-Sampling
-            for i in range(2):
+            for i in range(2) :
                 x = up_sample(x, scale_factor=2)
-                x = conv(x, channel // 2, kernel=3, stride=1, pad=1, pad_type='reflect', scope='up_conv_' + str(i))
-                x = layer_instance_norm(x, scope='layer_ins_norm_' + str(i))
+                x = conv(x, channel//2, kernel=3, stride=1, pad=1, pad_type='reflect', scope='up_conv_'+str(i))
+                x = layer_instance_norm(x, scope='layer_ins_norm_'+str(i))
                 x = relu(x)
 
                 channel = channel // 2
+
 
             x = conv(x, channels=3, kernel=7, stride=1, pad=3, pad_type='reflect', scope='G_logit')
             x = tanh(x)
@@ -161,13 +163,14 @@ class UGATIT(object):
     def MLP(self, x, use_bias=True, reuse=False, scope='MLP'):
         channel = self.ch * self.n_res
 
-        if self.light:
+        if self.light :
             x = global_avg_pooling(x)
 
         with tf.variable_scope(scope, reuse=reuse):
-            for i in range(2):
+            for i in range(2) :
                 x = fully_connected(x, channel, use_bias, scope='linear_' + str(i))
                 x = relu(x)
+
 
             gamma = fully_connected(x, channel, use_bias, scope='gamma')
             beta = fully_connected(x, channel, use_bias, scope='beta')
@@ -184,7 +187,7 @@ class UGATIT(object):
     def discriminator(self, x_init, reuse=False, scope="discriminator"):
         D_logit = []
         D_CAM_logit = []
-        with tf.variable_scope(scope, reuse=reuse):
+        with tf.variable_scope(scope, reuse=reuse) :
             local_x, local_cam, local_heatmap = self.discriminator_local(x_init, reuse=reuse, scope='local')
             global_x, global_cam, global_heatmap = self.discriminator_global(x_init, reuse=reuse, scope='global')
 
@@ -200,8 +203,7 @@ class UGATIT(object):
             x = lrelu(x, 0.2)
 
             for i in range(1, self.n_dis - 1):
-                x = conv(x, channel * 2, kernel=4, stride=2, pad=1, pad_type='reflect', sn=self.sn,
-                         scope='conv_' + str(i))
+                x = conv(x, channel * 2, kernel=4, stride=2, pad=1, pad_type='reflect', sn=self.sn, scope='conv_' + str(i))
                 x = lrelu(x, 0.2)
 
                 channel = channel * 2
@@ -227,19 +229,19 @@ class UGATIT(object):
 
             heatmap = tf.squeeze(tf.reduce_sum(x, axis=-1))
 
+
             x = conv(x, channels=1, kernel=4, stride=1, pad=1, pad_type='reflect', sn=self.sn, scope='D_logit')
 
             return x, cam_logit, heatmap
 
     def discriminator_local(self, x_init, reuse=False, scope='discriminator_local'):
-        with tf.variable_scope(scope, reuse=reuse):
+        with tf.variable_scope(scope, reuse=reuse) :
             channel = self.ch
             x = conv(x_init, channel, kernel=4, stride=2, pad=1, pad_type='reflect', sn=self.sn, scope='conv_0')
             x = lrelu(x, 0.2)
 
             for i in range(1, self.n_dis - 2 - 1):
-                x = conv(x, channel * 2, kernel=4, stride=2, pad=1, pad_type='reflect', sn=self.sn,
-                         scope='conv_' + str(i))
+                x = conv(x, channel * 2, kernel=4, stride=2, pad=1, pad_type='reflect', sn=self.sn, scope='conv_' + str(i))
                 x = lrelu(x, 0.2)
 
                 channel = channel * 2
@@ -284,18 +286,14 @@ class UGATIT(object):
         return out, cam
 
     def discriminate_real(self, x_A, x_B):
-        with tf.device('/gpu:3'):
-            real_A_logit, real_A_cam_logit, _, _ = self.discriminator(x_A, scope="discriminator_A")
-        with tf.device('/gpu:4'):
-            real_B_logit, real_B_cam_logit, _, _ = self.discriminator(x_B, scope="discriminator_B")
+        real_A_logit, real_A_cam_logit, _, _ = self.discriminator(x_A, scope="discriminator_A")
+        real_B_logit, real_B_cam_logit, _, _ = self.discriminator(x_B, scope="discriminator_B")
 
         return real_A_logit, real_A_cam_logit, real_B_logit, real_B_cam_logit
 
     def discriminate_fake(self, x_ba, x_ab):
-        with tf.device('/gpu:3'):
-            fake_A_logit, fake_A_cam_logit, _, _ = self.discriminator(x_ba, reuse=True, scope="discriminator_A")
-        with tf.device('/gpu:4'):
-            fake_B_logit, fake_B_cam_logit, _, _ = self.discriminator(x_ab, reuse=True, scope="discriminator_B")
+        fake_A_logit, fake_A_cam_logit, _, _ = self.discriminator(x_ba, reuse=True, scope="discriminator_A")
+        fake_B_logit, fake_B_cam_logit, _, _ = self.discriminator(x_ab, reuse=True, scope="discriminator_B")
 
         return fake_A_logit, fake_A_cam_logit, fake_B_logit, fake_B_cam_logit
 
@@ -312,44 +310,39 @@ class UGATIT(object):
 
         logit, cam_logit, _, _ = self.discriminator(interpolated, reuse=True, scope=scope)
 
+
         GP = []
         cam_GP = []
 
-        for i in range(2):
-            grad = tf.gradients(logit[i], interpolated)[0]  # gradient of D(interpolated)
-            grad_norm = tf.norm(flatten(grad), axis=1)  # l2 norm
+        for i in range(2) :
+            grad = tf.gradients(logit[i], interpolated)[0] # gradient of D(interpolated)
+            grad_norm = tf.norm(flatten(grad), axis=1) # l2 norm
 
             # WGAN - LP
-            if self.gan_type == 'wgan-lp':
+            if self.gan_type == 'wgan-lp' :
                 GP.append(self.ld * tf.reduce_mean(tf.square(tf.maximum(0.0, grad_norm - 1.))))
 
             elif self.gan_type == 'wgan-gp' or self.gan_type == 'dragan':
                 GP.append(self.ld * tf.reduce_mean(tf.square(grad_norm - 1.)))
 
-        for i in range(2):
-            grad = tf.gradients(cam_logit[i], interpolated)[0]  # gradient of D(interpolated)
-            grad_norm = tf.norm(flatten(grad), axis=1)  # l2 norm
+        for i in range(2) :
+            grad = tf.gradients(cam_logit[i], interpolated)[0] # gradient of D(interpolated)
+            grad_norm = tf.norm(flatten(grad), axis=1) # l2 norm
 
             # WGAN - LP
-            if self.gan_type == 'wgan-lp':
+            if self.gan_type == 'wgan-lp' :
                 cam_GP.append(self.ld * tf.reduce_mean(tf.square(tf.maximum(0.0, grad_norm - 1.))))
 
             elif self.gan_type == 'wgan-gp' or self.gan_type == 'dragan':
                 cam_GP.append(self.ld * tf.reduce_mean(tf.square(grad_norm - 1.)))
 
+
         return sum(GP), sum(cam_GP)
 
-    def get_available_gpus(self):
-        """
-            Returns a list of the identifiers of all visible GPUs.
-        """
-        from tensorflow.python.client import device_lib
-        local_device_protos = device_lib.list_local_devices()
-        return [x.name for x in local_device_protos if x.device_type == 'GPU']
-
     def build_model(self):
-        if self.phase == 'train':
+        if self.phase == 'train' :
             self.lr = tf.placeholder(tf.float32, name='learning_rate')
+
 
             """ Input Image"""
             Image_Data_Class = ImageData(self.img_size, self.img_ch, self.augment_flag)
@@ -357,17 +350,11 @@ class UGATIT(object):
             trainA = tf.data.Dataset.from_tensor_slices(self.trainA_dataset)
             trainB = tf.data.Dataset.from_tensor_slices(self.trainB_dataset)
 
-            # 使用GPU0
-            gpu_device_1 = '/gpu:1'
-            trainA = trainA.apply(shuffle_and_repeat(self.dataset_num)).apply(
-                map_and_batch(Image_Data_Class.image_processing, self.batch_size, num_parallel_batches=1,
-                              drop_remainder=True)).apply(prefetch_to_device(gpu_device_1, None))
 
-            # 使用GPU1
-            gpu_device_2 = '/gpu:2'
-            trainB = trainB.apply(shuffle_and_repeat(self.dataset_num)).apply(
-                map_and_batch(Image_Data_Class.image_processing, self.batch_size, num_parallel_batches=1,
-                              drop_remainder=True)).apply(prefetch_to_device(gpu_device_2, None))
+            gpu_device = '/gpu:0'
+            trainA = trainA.apply(shuffle_and_repeat(self.dataset_num)).apply(map_and_batch(Image_Data_Class.image_processing, self.batch_size, num_parallel_batches=16, drop_remainder=True)).apply(prefetch_to_device(gpu_device, None))
+            trainB = trainB.apply(shuffle_and_repeat(self.dataset_num)).apply(map_and_batch(Image_Data_Class.image_processing, self.batch_size, num_parallel_batches=16, drop_remainder=True)).apply(prefetch_to_device(gpu_device, None))
+
 
             trainA_iterator = trainA.make_one_shot_iterator()
             trainB_iterator = trainB.make_one_shot_iterator()
@@ -376,38 +363,35 @@ class UGATIT(object):
             self.domain_B = trainB_iterator.get_next()
 
             """ Define Generator, Discriminator """
-            x_ab, cam_ab = self.generate_a2b(self.domain_A)  # real a
-            x_ba, cam_ba = self.generate_b2a(self.domain_B)  # real b
-            x_aba, _ = self.generate_b2a(x_ab, reuse=True)  # real b
-            x_bab, _ = self.generate_a2b(x_ba, reuse=True)  # real a
-            x_aa, cam_aa = self.generate_b2a(self.domain_A, reuse=True)  # fake b
-            x_bb, cam_bb = self.generate_a2b(self.domain_B, reuse=True)  # fake a
+            x_ab, cam_ab = self.generate_a2b(self.domain_A) # real a
+            x_ba, cam_ba = self.generate_b2a(self.domain_B) # real b
 
-            real_A_logit, real_A_cam_logit, real_B_logit, real_B_cam_logit = \
-                self.discriminate_real(self.domain_A, self.domain_B)
-            fake_A_logit, fake_A_cam_logit, fake_B_logit, fake_B_cam_logit = \
-                self.discriminate_fake(x_ba, x_ab)
+            x_aba, _ = self.generate_b2a(x_ab, reuse=True) # real b
+            x_bab, _ = self.generate_a2b(x_ba, reuse=True) # real a
+
+            x_aa, cam_aa = self.generate_b2a(self.domain_A, reuse=True) # fake b
+            x_bb, cam_bb = self.generate_a2b(self.domain_B, reuse=True) # fake a
+
+            real_A_logit, real_A_cam_logit, real_B_logit, real_B_cam_logit = self.discriminate_real(self.domain_A, self.domain_B)
+            fake_A_logit, fake_A_cam_logit, fake_B_logit, fake_B_cam_logit = self.discriminate_fake(x_ba, x_ab)
+
 
             """ Define Loss """
-            if self.gan_type.__contains__('wgan') or self.gan_type == 'dragan':
+            if self.gan_type.__contains__('wgan') or self.gan_type == 'dragan' :
                 GP_A, GP_CAM_A = self.gradient_panalty(real=self.domain_A, fake=x_ba, scope="discriminator_A")
                 GP_B, GP_CAM_B = self.gradient_panalty(real=self.domain_B, fake=x_ab, scope="discriminator_B")
-            else:
-                GP_A, GP_CAM_A = 0, 0
+            else :
+                GP_A, GP_CAM_A  = 0, 0
                 GP_B, GP_CAM_B = 0, 0
 
-            G_ad_loss_A = (
-                    generator_loss(self.gan_type, fake_A_logit) + generator_loss(self.gan_type, fake_A_cam_logit))
-            G_ad_loss_B = (
-                    generator_loss(self.gan_type, fake_B_logit) + generator_loss(self.gan_type, fake_B_cam_logit))
+            G_ad_loss_A = (generator_loss(self.gan_type, fake_A_logit) + generator_loss(self.gan_type, fake_A_cam_logit))
+            G_ad_loss_B = (generator_loss(self.gan_type, fake_B_logit) + generator_loss(self.gan_type, fake_B_cam_logit))
 
-            D_ad_loss_A = (discriminator_loss(self.gan_type, real_A_logit, fake_A_logit) + discriminator_loss(
-                self.gan_type, real_A_cam_logit, fake_A_cam_logit) + GP_A + GP_CAM_A)
-            D_ad_loss_B = (discriminator_loss(self.gan_type, real_B_logit, fake_B_logit) + discriminator_loss(
-                self.gan_type, real_B_cam_logit, fake_B_cam_logit) + GP_B + GP_CAM_B)
+            D_ad_loss_A = (discriminator_loss(self.gan_type, real_A_logit, fake_A_logit) + discriminator_loss(self.gan_type, real_A_cam_logit, fake_A_cam_logit) + GP_A + GP_CAM_A)
+            D_ad_loss_B = (discriminator_loss(self.gan_type, real_B_logit, fake_B_logit) + discriminator_loss(self.gan_type, real_B_cam_logit, fake_B_cam_logit) + GP_B + GP_CAM_B)
 
-            reconstruction_A = L1_loss(x_aba, self.domain_A)  # reconstruction
-            reconstruction_B = L1_loss(x_bab, self.domain_B)  # reconstruction
+            reconstruction_A = L1_loss(x_aba, self.domain_A) # reconstruction
+            reconstruction_B = L1_loss(x_bab, self.domain_B) # reconstruction
 
             identity_A = L1_loss(x_aa, self.domain_A)
             identity_B = L1_loss(x_bb, self.domain_B)
@@ -420,56 +404,40 @@ class UGATIT(object):
             Generator_A_identity = self.identity_weight * identity_A
             Generator_A_cam = self.cam_weight * cam_A
 
+
             Generator_B_gan = self.adv_weight * G_ad_loss_B
             Generator_B_cycle = self.cycle_weight * reconstruction_A
             Generator_B_identity = self.identity_weight * identity_B
             Generator_B_cam = self.cam_weight * cam_B
 
+
             Generator_A_loss = Generator_A_gan + Generator_A_cycle + Generator_A_identity + Generator_A_cam
             Generator_B_loss = Generator_B_gan + Generator_B_cycle + Generator_B_identity + Generator_B_cam
+
 
             Discriminator_A_loss = self.adv_weight * D_ad_loss_A
             Discriminator_B_loss = self.adv_weight * D_ad_loss_B
 
-            with tf.device('/gpu:3'):
-                self.Generator_loss = Generator_A_loss + Generator_B_loss + \
-                                      regularization_loss('generator')
+            self.Generator_loss = Generator_A_loss + Generator_B_loss + regularization_loss('generator')
+            self.Discriminator_loss = Discriminator_A_loss + Discriminator_B_loss + regularization_loss('discriminator')
 
-            with tf.device('/gpu:4'):
-                self.Discriminator_loss = Discriminator_A_loss + Discriminator_B_loss + \
-                                          regularization_loss('discriminator')
 
             """ Result Image """
             self.fake_A = x_ba
             self.fake_B = x_ab
+
             self.real_A = self.domain_A
             self.real_B = self.domain_B
 
+
             """ Training """
-            devices = self.get_available_gpus()
-            print('[Info] devices: {}'.format(devices))
-
             t_vars = tf.trainable_variables()
-            G_vars = []
-            D_vars = []
-            for i, var in enumerate(t_vars):
-                idx = i % (len(devices) - 2)
-                if 'generator' in var.name:
-                    with tf.device(devices[idx]):
-                        G_vars.append(var)
-                if 'discriminator' in var.name:
-                    with tf.device(devices[idx]):
-                        D_vars.append(var)
+            G_vars = [var for var in t_vars if 'generator' in var.name]
+            D_vars = [var for var in t_vars if 'discriminator' in var.name]
 
-            # G_vars = [var for var in t_vars if 'generator' in var.name]
-            # D_vars = [var for var in t_vars if 'discriminator' in var.name]
+            self.G_optim = tf.train.AdamOptimizer(self.lr, beta1=0.5, beta2=0.999).minimize(self.Generator_loss, var_list=G_vars)
+            self.D_optim = tf.train.AdamOptimizer(self.lr, beta1=0.5, beta2=0.999).minimize(self.Discriminator_loss, var_list=D_vars)
 
-            with tf.device('/gpu:5'):
-                self.G_optim = tf.train.AdamOptimizer(self.lr, beta1=0.5, beta2=0.999).minimize(self.Generator_loss,
-                                                                                                var_list=G_vars)
-            with tf.device('/gpu:6'):
-                self.D_optim = tf.train.AdamOptimizer(self.lr, beta1=0.5, beta2=0.999).minimize(self.Discriminator_loss,
-                                                                                                var_list=D_vars)
 
             """" Summary """
             self.all_G_loss = tf.summary.scalar("Generator_loss", self.Generator_loss)
@@ -486,6 +454,7 @@ class UGATIT(object):
             self.G_B_cycle = tf.summary.scalar("G_B_cycle", Generator_B_cycle)
             self.G_B_identity = tf.summary.scalar("G_B_identity", Generator_B_identity)
             self.G_B_cam = tf.summary.scalar("G_B_cam", Generator_B_cam)
+
             self.D_A_loss = tf.summary.scalar("D_A_loss", Discriminator_A_loss)
             self.D_B_loss = tf.summary.scalar("D_B_loss", Discriminator_B_loss)
 
@@ -507,18 +476,17 @@ class UGATIT(object):
             self.G_loss = tf.summary.merge(g_summary_list)
             self.D_loss = tf.summary.merge(d_summary_list)
 
-        else:
+        else :
             """ Test """
-            self.test_domain_A = tf.placeholder(tf.float32, [1, self.img_size, self.img_size, self.img_ch],
-                                                name='test_domain_A')
-            self.test_domain_B = tf.placeholder(tf.float32, [1, self.img_size, self.img_size, self.img_ch],
-                                                name='test_domain_B')
+            self.test_domain_A = tf.placeholder(tf.float32, [1, self.img_size, self.img_size, self.img_ch], name='test_domain_A')
+            self.test_domain_B = tf.placeholder(tf.float32, [1, self.img_size, self.img_size, self.img_ch], name='test_domain_B')
+
 
             self.test_fake_B, _ = self.generate_a2b(self.test_domain_A)
             self.test_fake_A, _ = self.generate_b2a(self.test_domain_B)
 
+
     def train(self):
-        print('[Info] Batch size: {}'.format(self.batch_size))
         # initialize all variables
         tf.global_variables_initializer().run()
 
@@ -528,9 +496,9 @@ class UGATIT(object):
         # summary writer
         self.writer = tf.summary.FileWriter(self.log_dir + '/' + self.model_dir, self.sess.graph)
 
+
         # restore check-point if it exits
         could_load, checkpoint_counter = self.load(self.checkpoint_dir)
-
         if could_load:
             start_epoch = (int)(checkpoint_counter / self.iteration)
             start_batch_id = checkpoint_counter - start_epoch * self.iteration
@@ -548,52 +516,50 @@ class UGATIT(object):
         lr = self.init_lr
         for epoch in range(start_epoch, self.epoch):
             # lr = self.init_lr if epoch < self.decay_epoch else self.init_lr * (self.epoch - epoch) / (self.epoch - self.decay_epoch)
-            if self.decay_flag:
-                # lr = self.init_lr * pow(0.5, epoch // self.decay_epoch)
-                lr = self.init_lr if epoch < self.decay_epoch else self.init_lr * (self.epoch - epoch) / (
-                        self.epoch - self.decay_epoch)
+            if self.decay_flag :
+                #lr = self.init_lr * pow(0.5, epoch // self.decay_epoch)
+                lr = self.init_lr if epoch < self.decay_epoch else self.init_lr * (self.epoch - epoch) / (self.epoch - self.decay_epoch)
             for idx in range(start_batch_id, self.iteration):
                 train_feed_dict = {
-                    self.lr: lr
+                    self.lr : lr
                 }
 
                 # Update D
                 _, d_loss, summary_str = self.sess.run([self.D_optim,
-                                                        self.Discriminator_loss, self.D_loss],
-                                                       feed_dict=train_feed_dict)
+                                                        self.Discriminator_loss, self.D_loss], feed_dict = train_feed_dict)
                 self.writer.add_summary(summary_str, counter)
 
                 # Update G
                 g_loss = None
-                if (counter - 1) % self.n_critic == 0:
-                    batch_A_images, batch_B_images, fake_A, fake_B, _, g_loss, summary_str = self.sess.run(
-                        [self.real_A, self.real_B,
-                         self.fake_A, self.fake_B,
-                         self.G_optim,
-                         self.Generator_loss, self.G_loss], feed_dict=train_feed_dict)
+                if (counter - 1) % self.n_critic == 0 :
+                    batch_A_images, batch_B_images, fake_A, fake_B, _, g_loss, summary_str = self.sess.run([self.real_A, self.real_B,
+                                                                                                            self.fake_A, self.fake_B,
+                                                                                                            self.G_optim,
+                                                                                                            self.Generator_loss, self.G_loss], feed_dict = train_feed_dict)
                     self.writer.add_summary(summary_str, counter)
                     past_g_loss = g_loss
 
                 # display training status
                 counter += 1
-                if g_loss == None:
+                if g_loss == None :
                     g_loss = past_g_loss
-                print("Epoch: [%2d] [%5d/%5d] time: %4.4f d_loss: %.8f, g_loss: %.8f" % (
-                    epoch, idx, self.iteration, time.time() - start_time, d_loss, g_loss))
+                print("Epoch: [%2d] [%5d/%5d] time: %4.4f d_loss: %.8f, g_loss: %.8f" % (epoch, idx, self.iteration, time.time() - start_time, d_loss, g_loss))
 
-                if np.mod(idx + 1, self.print_freq) == 0:
+                if np.mod(idx+1, self.print_freq) == 0 :
                     save_images(batch_A_images, [self.batch_size, 1],
-                                './{}/real_A_{:03d}_{:05d}.png'.format(self.sample_dir, epoch, idx + 1))
+                                './{}/real_A_{:03d}_{:05d}.png'.format(self.sample_dir, epoch, idx+1))
                     # save_images(batch_B_images, [self.batch_size, 1],
                     #             './{}/real_B_{:03d}_{:05d}.png'.format(self.sample_dir, epoch, idx+1))
 
                     # save_images(fake_A, [self.batch_size, 1],
                     #             './{}/fake_A_{:03d}_{:05d}.png'.format(self.sample_dir, epoch, idx+1))
                     save_images(fake_B, [self.batch_size, 1],
-                                './{}/fake_B_{:03d}_{:05d}.png'.format(self.sample_dir, epoch, idx + 1))
+                                './{}/fake_B_{:03d}_{:05d}.png'.format(self.sample_dir, epoch, idx+1))
 
                 if np.mod(idx + 1, self.save_freq) == 0:
                     self.save(self.checkpoint_dir, counter)
+
+
 
             # After an epoch, start_batch_id is set to zero
             # non-zero value is only for the first epoch after loading pre-trained model
@@ -607,21 +573,20 @@ class UGATIT(object):
         n_res = str(self.n_res) + 'resblock'
         n_dis = str(self.n_dis) + 'dis'
 
-        if self.smoothing:
+        if self.smoothing :
             smoothing = '_smoothing'
-        else:
+        else :
             smoothing = ''
 
-        if self.sn:
+        if self.sn :
             sn = '_sn'
-        else:
+        else :
             sn = ''
 
         return "{}_{}_{}_{}_{}_{}_{}_{}_{}_{}{}{}".format(self.model_name, self.dataset_name,
-                                                          self.gan_type, n_res, n_dis,
-                                                          self.n_critic,
-                                                          self.adv_weight, self.cycle_weight, self.identity_weight,
-                                                          self.cam_weight, sn, smoothing)
+                                                         self.gan_type, n_res, n_dis,
+                                                         self.n_critic,
+                                                         self.adv_weight, self.cycle_weight, self.identity_weight, self.cam_weight, sn, smoothing)
 
     def save(self, checkpoint_dir, step):
         checkpoint_dir = os.path.join(checkpoint_dir, self.model_dir)
@@ -634,7 +599,7 @@ class UGATIT(object):
     def load(self, checkpoint_dir):
         print(" [*] Reading checkpoints...")
         checkpoint_dir = os.path.join(checkpoint_dir, self.model_dir)
-        print('[Info] Load Checkpoint Dir: {}'.format(checkpoint_dir))
+
         ckpt = tf.train.get_checkpoint_state(checkpoint_dir)
         if ckpt and ckpt.model_checkpoint_path:
             ckpt_name = os.path.basename(ckpt.model_checkpoint_path)
@@ -646,28 +611,6 @@ class UGATIT(object):
             print(" [*] Failed to find a checkpoint")
             return False, 0
 
-    def init_model(self, sess):
-        """
-        初始化模型
-        """
-        tf.global_variables_initializer().run(session=sess)
-        self.saver = tf.train.Saver()
-        could_load, checkpoint_counter = self.load(self.checkpoint_dir)
-
-    def read_img(self, img_path):
-        """
-        读取图像
-        """
-        sample_image = np.asarray(load_test_data(img_path, size=self.img_size))
-        return sample_image
-
-    def predict_img(self, img_np, sess):
-        """
-        预测图像
-        """
-        fake_img = sess.run(self.test_fake_B, feed_dict={self.test_domain_A: img_np})
-        return fake_img
-
     def test(self):
         tf.global_variables_initializer().run()
         test_A_files = glob('./dataset/{}/*.*'.format(self.dataset_name + '/testA'))
@@ -678,9 +621,9 @@ class UGATIT(object):
         self.result_dir = os.path.join(self.result_dir, self.model_dir)
         check_folder(self.result_dir)
 
-        if could_load:
+        if could_load :
             print(" [*] Load SUCCESS")
-        else:
+        else :
             print(" [!] Load failed...")
 
         # write html for visual comparison
@@ -689,38 +632,34 @@ class UGATIT(object):
         index.write("<html><body><table><tr>")
         index.write("<th>name</th><th>input</th><th>output</th></tr>")
 
-        for sample_file in test_A_files:  # A -> B
+        for sample_file  in test_A_files : # A -> B
             print('Processing A image: ' + sample_file)
             sample_image = np.asarray(load_test_data(sample_file, size=self.img_size))
-            image_path = os.path.join(self.result_dir, '{0}'.format(os.path.basename(sample_file)))
+            image_path = os.path.join(self.result_dir,'{0}'.format(os.path.basename(sample_file)))
 
-            fake_img = self.sess.run(self.test_fake_B, feed_dict={self.test_domain_A: sample_image})
+            fake_img = self.sess.run(self.test_fake_B, feed_dict = {self.test_domain_A : sample_image})
             save_images(fake_img, [1, 1], image_path)
 
             index.write("<td>%s</td>" % os.path.basename(image_path))
 
-            index.write(
-                "<td><img src='%s' width='%d' height='%d'></td>" % (sample_file if os.path.isabs(sample_file) else (
-                        '../..' + os.path.sep + sample_file), self.img_size, self.img_size))
-            index.write(
-                "<td><img src='%s' width='%d' height='%d'></td>" % (image_path if os.path.isabs(image_path) else (
-                        '../..' + os.path.sep + image_path), self.img_size, self.img_size))
+            index.write("<td><img src='%s' width='%d' height='%d'></td>" % (sample_file if os.path.isabs(sample_file) else (
+                '../..' + os.path.sep + sample_file), self.img_size, self.img_size))
+            index.write("<td><img src='%s' width='%d' height='%d'></td>" % (image_path if os.path.isabs(image_path) else (
+                '../..' + os.path.sep + image_path), self.img_size, self.img_size))
             index.write("</tr>")
 
-        for sample_file in test_B_files:  # B -> A
+        for sample_file  in test_B_files : # B -> A
             print('Processing B image: ' + sample_file)
             sample_image = np.asarray(load_test_data(sample_file, size=self.img_size))
-            image_path = os.path.join(self.result_dir, '{0}'.format(os.path.basename(sample_file)))
+            image_path = os.path.join(self.result_dir,'{0}'.format(os.path.basename(sample_file)))
 
-            fake_img = self.sess.run(self.test_fake_A, feed_dict={self.test_domain_B: sample_image})
+            fake_img = self.sess.run(self.test_fake_A, feed_dict = {self.test_domain_B : sample_image})
 
             save_images(fake_img, [1, 1], image_path)
             index.write("<td>%s</td>" % os.path.basename(image_path))
-            index.write(
-                "<td><img src='%s' width='%d' height='%d'></td>" % (sample_file if os.path.isabs(sample_file) else (
-                        '../..' + os.path.sep + sample_file), self.img_size, self.img_size))
-            index.write(
-                "<td><img src='%s' width='%d' height='%d'></td>" % (image_path if os.path.isabs(image_path) else (
-                        '../..' + os.path.sep + image_path), self.img_size, self.img_size))
+            index.write("<td><img src='%s' width='%d' height='%d'></td>" % (sample_file if os.path.isabs(sample_file) else (
+                    '../..' + os.path.sep + sample_file), self.img_size, self.img_size))
+            index.write("<td><img src='%s' width='%d' height='%d'></td>" % (image_path if os.path.isabs(image_path) else (
+                    '../..' + os.path.sep + image_path), self.img_size, self.img_size))
             index.write("</tr>")
         index.close()
